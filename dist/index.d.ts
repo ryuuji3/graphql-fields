@@ -1,5 +1,6 @@
 import { GraphQLResolveInfo } from "graphql";
 export default class GraphQLNodes {
+    private info;
     /**
      * Fragments.
      *

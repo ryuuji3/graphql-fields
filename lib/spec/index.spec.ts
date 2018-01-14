@@ -2,180 +2,220 @@ import { buildSchema, graphql, ExecutionResult, GraphQLFieldResolver, GraphQLSch
 import * as assert from 'assert'
 import GraphQLNodes from '../'
 
-let query = `
-query UsersRoute {
-    viewer {
-        users(userId:"123",first:25,includeInactive:true) @skip(if:false) {
-            ...A
-            ...D
-            pageInfo {
-            totalResults
-            }
-
-        }
-    }
-}
-
-fragment A on UserConnection {
-    edges {
-    node {
-        addressBook {
-        apiType
-        }
-    }
-    }
-    ...B
-}
-fragment B on UserConnection {
-    ...C
-    edges {
-    cursor
-    }
-}
-
-fragment C on UserConnection {
-    edges {
-    cursor,
-    node {
-        profile {
-            displayName,
-            email
-        }
-    }
-    }
-}
-fragment D on UserConnection {
-    edges {
-    node {
-        proProfile {
-        apiType
-        }
-    }
-    }
-    ...B
-}
-`;
-
-const schema = new GraphQLSchema({
-    query: new GraphQLObjectType({
-        name: 'Query',
-        fields: {
-            viewer: {
-                type: new GraphQLObjectType({
-                    name: 'Viewer',
-                    fields: {
-                        users: {
-                            args: {
-                                userId: {type: GraphQLString},
-                                first: {type: GraphQLInt},
-                                includeInactive: {type: GraphQLBoolean}
-                            },
-                            type: new GraphQLObjectType({
-                                name: 'UserConnection',
-                                fields: {
-                                    pageInfo: {
-                                        type: new GraphQLObjectType({
-                                            name: 'PageInfo',
-                                            fields: {
-                                                totalResults: {type: GraphQLInt}
-                                            }
-                                        })
-                                    },
-                                    edges: {
-                                        type: new GraphQLList(
-                                            new GraphQLObjectType({
-                                                name: 'UserEdge',
-                                                fields: {
-                                                    cursor: {type: GraphQLString},
-                                                    node: {
-                                                        type: new GraphQLObjectType({
-                                                            name: 'User',
-                                                            fields: {
-                                                                addressBook: {
-                                                                    type: new GraphQLObjectType({
-                                                                        name: 'AddressBook',
-                                                                        fields: {
-                                                                            apiType: {type: GraphQLString}
-                                                                        }
-                                                                    })
-                                                                },
-                                                                profile: {
-                                                                    type: new GraphQLObjectType({
-                                                                        name: 'Profile',
-                                                                        fields: {
-                                                                            displayName: {type: GraphQLString},
-                                                                            email: {type: GraphQLString}
-                                                                        }
-                                                                    })
-                                                                },
-                                                                proProfile: {
-                                                                    type: new GraphQLObjectType({
-                                                                        name: 'ProProfile',
-                                                                        fields: {
-                                                                            apiType: {type: GraphQLString}
-                                                                        }
-                                                                    })
-                                                                }
-                                                            }
-                                                        })
-                                                    }
-                                                }
-                                            })
-                                        )
-                                    }
-                                }
-                            })
-                        }
-                    }
-                }),
-                resolve(root, args, context, i) {
-                    info = i;
-                    return {};
-                }
-            }
-        }
-    })
-});
-
-const expected = {
-    users: {
-        pageInfo: {
-            totalResults: {}
-        },
-        edges: {
-            cursor: {},
-            node: {
-                addressBook: {
-                    apiType: {}
-                },
-                proProfile: {
-                    apiType: {}
-                },
-                profile: {
-                    displayName: {},
-                    email: {}
-                }
-            }
-        }
-    }
-};
-
 let info : GraphQLResolveInfo
+
+let schema = buildSchema(`
+type Address {
+    line1: String
+    line2: String
+    city: String
+    state: String
+    country: String
+}
+
+type Availability {
+    requestedHours: Int
+}
+
+interface Employee {
+    id: ID
+    firstName: String
+    lastName: String
+    birthday: String
+    address: Address
+}
+
+type Crew implements Employee {
+    id: ID
+    firstName: String
+    lastName: String
+    birthday: String
+    address: Address
+    availability: Availability
+}
+
+enum ManagerRole {
+    SHIFT_SUPERVISOR
+    RESTAURANT_MANAGER
+    GENERAL_MANAGER
+}
+
+type Manager implements Employee {
+    id: ID
+    firstName: String
+    lastName: String
+    birthday: String
+    address: Address
+    role : ManagerRole
+}
+
+union SearchResult = Manager | Crew
+
+type Store {
+    id: ID
+    address: Address
+    crew : [Crew]
+    managers : [Manager]
+}
+
+type Query {
+    stores: [Store]
+    employees: [SearchResult]
+}
+
+schema {
+    query: Query
+}
+`)
 
 let resolver : GraphQLFieldResolver<any, any> = (source, args, context, i: GraphQLResolveInfo) : object => {
     info = i
-    return {}
+    return []
 }
 
 describe('GraphQLNodes', () => {
-    it('Creates map as expected', async () => {
+    afterEach(() => {
+        info = null
+    })
+    it('Creates map for simple query', async () => {
+        let query = `
+            query {
+                stores {
+                    crew {
+                        firstName
+                        lastName
+                    }
+                }
+            }
+        `
+        let expected = {
+            "crew" : {
+                "firstName" : {},
+                "lastName" : {}
+            }
+        }
+
         let graphqlArgs = {
             schema: schema,
-            source: query
+            source: query,
+            fieldResolver : resolver
         }
         
         let response : ExecutionResult = await graphql(graphqlArgs)
     
+        let graphqlNodes = new GraphQLNodes(info)
+        let map = graphqlNodes.createMap()
+
+        assert.deepStrictEqual(map, expected)
+    })
+    it('Creates map for query with fragment definition', async () => {
+        let query = `
+            fragment profile on Crew {
+                firstName
+                lastName
+                birthday
+            }
+
+            query {
+                stores {
+                    crew {
+                        ... profile 
+                    }
+                }
+            }
+        `
+        let expected = {
+            "crew" : {
+                "firstName" : {},
+                "lastName" : {},
+                "birthday" : {}
+            }
+        }
+
+        let graphqlArgs = {
+            schema: schema,
+            source: query,
+            fieldResolver : resolver
+        }
+            
+        let response : ExecutionResult = await graphql(graphqlArgs)
+
+        let graphqlNodes = new GraphQLNodes(info)
+        let map = graphqlNodes.createMap()
+
+        assert.deepStrictEqual(map, expected)
+    })
+    it('Creates map for query with inline fragment', async () => {
+        let query = `
+            query {
+                employees {
+                    ... on Crew {
+                        firstName
+                        availability {
+                            requestedHours
+                        }
+                    }
+                    ... on Manager {
+                        firstName
+                        role
+                    }
+                }
+            }
+        `
+
+        let expected = {
+            "firstName" : {},
+            "availability" : {
+                "requestedHours" : {}
+            },
+            "role" : {}
+        }
+
+        let graphqlArgs = {
+            schema: schema,
+            source: query,
+            fieldResolver : resolver
+        }
+
+        let response : ExecutionResult = await graphql(graphqlArgs)
+
+        let graphqlNodes = new GraphQLNodes(info)
+        let map = graphqlNodes.createMap()
+
+        assert.deepStrictEqual(map, expected)
+    })
+    it('Creates map for complex query with fragment definitions and inline fragments', async () => {
+        let query = `
+            fragment name on Employee {
+                firstName
+                lastName
+            }
+
+            query {
+                employees { 
+                    ... on Crew {
+                        ... name
+                    }
+                    ... on Manager {
+                        ... name
+                    }
+                }
+            }
+        `
+
+        let expected = {
+            "firstName" : {},
+            "lastName" : {}
+        }
+
+        let graphqlArgs = {
+            schema: schema,
+            source: query,
+            fieldResolver : resolver
+        }
+
+        let response : ExecutionResult = await graphql(graphqlArgs)
+
         let graphqlNodes = new GraphQLNodes(info)
         let map = graphqlNodes.createMap()
 

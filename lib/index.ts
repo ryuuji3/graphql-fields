@@ -4,6 +4,7 @@ import { SelectionNode, FragmentDefinitionNode, InlineFragmentNode, FragmentSpre
  * All Nodes.
  */
 type GraphQLNode = SelectionNode | FragmentDefinitionNode
+
 /**
  * Fragment Nodes only.
  */
@@ -33,13 +34,7 @@ export default class GraphQLNodes {
      */
     public createMap(nodeMap = {}) {
         let parentNodes = this.fieldNodes
-        let getSelections = (node: GraphQLNode) : GraphQLNode[] => { 
-            if ((node as FieldNode).selectionSet) {
-                return (node as FieldNode).selectionSet.selections
-            } else {
-                return []
-            }
-        }
+        let getSelections = (node: GraphQLNode) : GraphQLNode[] => (node as FieldNode).selectionSet ? (node as FieldNode).selectionSet.selections : []
         let isFragment = (node : GraphQLNode) : node is GraphQLFragmentNode => {
             return (node.kind === 'InlineFragment') || (node.kind === 'FragmentSpread') || (node.kind === 'FragmentDefinition' )
         }
@@ -80,7 +75,7 @@ export default class GraphQLNodes {
         }, nodeMap)
     }
 
-    constructor(info: GraphQLResolveInfo) {
+    constructor(private info: GraphQLResolveInfo) {
         this.fragments = info.fragments
         this.fieldNodes = info.fieldNodes || info['fieldASTs'] // To maintain compatability with older versions of Graphql
     }

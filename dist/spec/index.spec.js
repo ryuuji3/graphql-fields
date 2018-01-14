@@ -39,121 +39,113 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var graphql_1 = require("graphql");
 var assert = require("assert");
 var _1 = require("../");
-var query = "\nquery UsersRoute {\n    viewer {\n        users(userId:\"123\",first:25,includeInactive:true) @skip(if:false) {\n            ...A\n            ...D\n            pageInfo {\n            totalResults\n            }\n\n        }\n    }\n}\n\nfragment A on UserConnection {\n    edges {\n    node {\n        addressBook {\n        apiType\n        }\n    }\n    }\n    ...B\n}\nfragment B on UserConnection {\n    ...C\n    edges {\n    cursor\n    }\n}\n\nfragment C on UserConnection {\n    edges {\n    cursor,\n    node {\n        profile {\n            displayName,\n            email\n        }\n    }\n    }\n}\nfragment D on UserConnection {\n    edges {\n    node {\n        proProfile {\n        apiType\n        }\n    }\n    }\n    ...B\n}\n";
-var schema = new graphql_1.GraphQLSchema({
-    query: new graphql_1.GraphQLObjectType({
-        name: 'Query',
-        fields: {
-            viewer: {
-                type: new graphql_1.GraphQLObjectType({
-                    name: 'Viewer',
-                    fields: {
-                        users: {
-                            args: {
-                                userId: { type: graphql_1.GraphQLString },
-                                first: { type: graphql_1.GraphQLInt },
-                                includeInactive: { type: graphql_1.GraphQLBoolean }
-                            },
-                            type: new graphql_1.GraphQLObjectType({
-                                name: 'UserConnection',
-                                fields: {
-                                    pageInfo: {
-                                        type: new graphql_1.GraphQLObjectType({
-                                            name: 'PageInfo',
-                                            fields: {
-                                                totalResults: { type: graphql_1.GraphQLInt }
-                                            }
-                                        })
-                                    },
-                                    edges: {
-                                        type: new graphql_1.GraphQLList(new graphql_1.GraphQLObjectType({
-                                            name: 'UserEdge',
-                                            fields: {
-                                                cursor: { type: graphql_1.GraphQLString },
-                                                node: {
-                                                    type: new graphql_1.GraphQLObjectType({
-                                                        name: 'User',
-                                                        fields: {
-                                                            addressBook: {
-                                                                type: new graphql_1.GraphQLObjectType({
-                                                                    name: 'AddressBook',
-                                                                    fields: {
-                                                                        apiType: { type: graphql_1.GraphQLString }
-                                                                    }
-                                                                })
-                                                            },
-                                                            profile: {
-                                                                type: new graphql_1.GraphQLObjectType({
-                                                                    name: 'Profile',
-                                                                    fields: {
-                                                                        displayName: { type: graphql_1.GraphQLString },
-                                                                        email: { type: graphql_1.GraphQLString }
-                                                                    }
-                                                                })
-                                                            },
-                                                            proProfile: {
-                                                                type: new graphql_1.GraphQLObjectType({
-                                                                    name: 'ProProfile',
-                                                                    fields: {
-                                                                        apiType: { type: graphql_1.GraphQLString }
-                                                                    }
-                                                                })
-                                                            }
-                                                        }
-                                                    })
-                                                }
-                                            }
-                                        }))
-                                    }
-                                }
-                            })
-                        }
-                    }
-                }),
-                resolve: function (root, args, context, i) {
-                    info = i;
-                    return {};
-                }
-            }
-        }
-    })
-});
-var expected = {
-    users: {
-        pageInfo: {
-            totalResults: {}
-        },
-        edges: {
-            cursor: {},
-            node: {
-                addressBook: {
-                    apiType: {}
-                },
-                proProfile: {
-                    apiType: {}
-                },
-                profile: {
-                    displayName: {},
-                    email: {}
-                }
-            }
-        }
-    }
-};
 var info;
+var schema = graphql_1.buildSchema("\ntype Address {\n    line1: String\n    line2: String\n    city: String\n    state: String\n    country: String\n}\n\ntype Availability {\n    requestedHours: Int\n}\n\ninterface Employee {\n    id: ID\n    firstName: String\n    lastName: String\n    birthday: String\n    address: Address\n}\n\ntype Crew implements Employee {\n    id: ID\n    firstName: String\n    lastName: String\n    birthday: String\n    address: Address\n    availability: Availability\n}\n\nenum ManagerRole {\n    SHIFT_SUPERVISOR\n    RESTAURANT_MANAGER\n    GENERAL_MANAGER\n}\n\ntype Manager implements Employee {\n    id: ID\n    firstName: String\n    lastName: String\n    birthday: String\n    address: Address\n    role : ManagerRole\n}\n\nunion SearchResult = Manager | Crew\n\ntype Store {\n    id: ID\n    address: Address\n    crew : [Crew]\n    managers : [Manager]\n}\n\ntype Query {\n    stores: [Store]\n    employees: [SearchResult]\n}\n\nschema {\n    query: Query\n}\n");
 var resolver = function (source, args, context, i) {
     info = i;
-    return {};
+    return [];
 };
 describe('GraphQLNodes', function () {
-    it('Creates map as expected', function () { return __awaiter(_this, void 0, void 0, function () {
-        var graphqlArgs, response, graphqlNodes, map;
+    afterEach(function () {
+        info = null;
+    });
+    it('Creates map for simple query', function () { return __awaiter(_this, void 0, void 0, function () {
+        var query, expected, graphqlArgs, response, graphqlNodes, map;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
+                    query = "\n            query {\n                stores {\n                    crew {\n                        firstName\n                        lastName\n                    }\n                }\n            }\n        ";
+                    expected = {
+                        "crew": {
+                            "firstName": {},
+                            "lastName": {}
+                        }
+                    };
                     graphqlArgs = {
                         schema: schema,
-                        source: query
+                        source: query,
+                        fieldResolver: resolver
+                    };
+                    return [4 /*yield*/, graphql_1.graphql(graphqlArgs)];
+                case 1:
+                    response = _a.sent();
+                    graphqlNodes = new _1.default(info);
+                    map = graphqlNodes.createMap();
+                    assert.deepStrictEqual(map, expected);
+                    return [2 /*return*/];
+            }
+        });
+    }); });
+    it('Creates map for query with fragment definition', function () { return __awaiter(_this, void 0, void 0, function () {
+        var query, expected, graphqlArgs, response, graphqlNodes, map;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    query = "\n            fragment profile on Crew {\n                firstName\n                lastName\n                birthday\n            }\n\n            query {\n                stores {\n                    crew {\n                        ... profile \n                    }\n                }\n            }\n        ";
+                    expected = {
+                        "crew": {
+                            "firstName": {},
+                            "lastName": {},
+                            "birthday": {}
+                        }
+                    };
+                    graphqlArgs = {
+                        schema: schema,
+                        source: query,
+                        fieldResolver: resolver
+                    };
+                    return [4 /*yield*/, graphql_1.graphql(graphqlArgs)];
+                case 1:
+                    response = _a.sent();
+                    graphqlNodes = new _1.default(info);
+                    map = graphqlNodes.createMap();
+                    assert.deepStrictEqual(map, expected);
+                    return [2 /*return*/];
+            }
+        });
+    }); });
+    it('Creates map for query with inline fragment', function () { return __awaiter(_this, void 0, void 0, function () {
+        var query, expected, graphqlArgs, response, graphqlNodes, map;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    query = "\n            query {\n                employees {\n                    ... on Crew {\n                        firstName\n                        availability {\n                            requestedHours\n                        }\n                    }\n                    ... on Manager {\n                        firstName\n                        role\n                    }\n                }\n            }\n        ";
+                    expected = {
+                        "firstName": {},
+                        "availability": {
+                            "requestedHours": {}
+                        },
+                        "role": {}
+                    };
+                    graphqlArgs = {
+                        schema: schema,
+                        source: query,
+                        fieldResolver: resolver
+                    };
+                    return [4 /*yield*/, graphql_1.graphql(graphqlArgs)];
+                case 1:
+                    response = _a.sent();
+                    graphqlNodes = new _1.default(info);
+                    map = graphqlNodes.createMap();
+                    assert.deepStrictEqual(map, expected);
+                    return [2 /*return*/];
+            }
+        });
+    }); });
+    it('Creates map for complex query with fragment definitions and inline fragments', function () { return __awaiter(_this, void 0, void 0, function () {
+        var query, expected, graphqlArgs, response, graphqlNodes, map;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    query = "\n            fragment name on Employee {\n                firstName\n                lastName\n            }\n\n            query {\n                employees { \n                    ... on Crew {\n                        ... name\n                    }\n                    ... on Manager {\n                        ... name\n                    }\n                }\n            }\n        ";
+                    expected = {
+                        "firstName": {},
+                        "lastName": {}
+                    };
+                    graphqlArgs = {
+                        schema: schema,
+                        source: query,
+                        fieldResolver: resolver
                     };
                     return [4 /*yield*/, graphql_1.graphql(graphqlArgs)];
                 case 1:

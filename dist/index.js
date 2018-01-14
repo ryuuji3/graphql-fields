@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var GraphQLNodes = /** @class */ (function () {
     function GraphQLNodes(info) {
+        this.info = info;
         /**
          * Field Nodes.
          *
@@ -20,14 +21,7 @@ var GraphQLNodes = /** @class */ (function () {
         var _this = this;
         if (nodeMap === void 0) { nodeMap = {}; }
         var parentNodes = this.fieldNodes;
-        var getSelections = function (node) {
-            if (node.selectionSet) {
-                return node.selectionSet.selections;
-            }
-            else {
-                return [];
-            }
-        };
+        var getSelections = function (node) { return node.selectionSet ? node.selectionSet.selections : []; };
         var isFragment = function (node) {
             return (node.kind === 'InlineFragment') || (node.kind === 'FragmentSpread') || (node.kind === 'FragmentDefinition');
         };
