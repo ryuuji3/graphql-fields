@@ -1,31 +1,39 @@
 {
-  "name": "graphql-fields",
-  "version": "1.0.2",
-  "description": "Turns GraphQLResolveInfo into a map of the requested fields",
-  "main": "index.js",
+  "name": "graphql-nodes",
+  "version": "1.0.0",
+  "description": "Turns GraphQLResolveInfo into a map of the requested nodes. Forked graphql-fields from Rob Richard.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "mocha"
+    "build": "tsc",
+    "test": "mocha dist/spec/*.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/robrichard/graphql-fields.git"
+    "url": "git+https://github.com/ryuuji3/graphql-fields.git"
   },
   "keywords": [
     "graphql",
     "graphql-js",
     "graphqlresolveinfo",
     "fields",
+    "nodes",
     "schema",
     "ast"
   ],
-  "author": "Rob Richard",
+  "author": "Josh Lalonde <joshlalonde@outlook.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/robrichard/graphql-fields/issues"
+    "url": "https://github.com/ryuuji3/graphql-fields/issues"
   },
-  "homepage": "https://github.com/robrichard/graphql-fields#readme",
+  "homepage": "https://github.com/ryuuji3/graphql-fields#readme",
   "devDependencies": {
-    "graphql": "^0.6.2",
-    "mocha": "^2.4.5"
+    "@types/mocha": "^2.2.46",
+    "mocha": "^4.1.0",
+    "typescript": "^2.6.2"
+  },
+  "dependencies": {
+    "graphql": "^0.12.3",
+    "@types/graphql": "^0.11.7"
   }
 }
