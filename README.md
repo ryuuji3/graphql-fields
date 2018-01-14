@@ -3,6 +3,11 @@ Turns GraphQLResolveInfo into a map of the requested nodes. Flattens all fragmen
 
 This project was originally created by Rob Richard [https://github.com/robrichard] and I take no credit for this project. I only 'ported' it to Typescript and re-organized it a bit. Thanks for your work, Rob! :clap:
 
+## Installation
+```
+    npm install --save graphql-nodes
+```
+
 ## Usage
 
 ```typescript
