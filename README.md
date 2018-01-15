@@ -11,7 +11,7 @@ This project was originally created by Rob Richard [https://github.com/robrichar
 ## Usage
 
 ```typescript
-import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql'
+import { GraphQLResolveInfo } from 'graphql'
 import GraphQLNodes from 'graphql-nodes'
 
 function resolver (source, args, context, info : GraphQLResolveInfo) {
@@ -19,6 +19,22 @@ function resolver (source, args, context, info : GraphQLResolveInfo) {
 
     let nodes = new GraphQLNodes(info)
     let map = nodes.createMap() // <-- There you have it!
+
+    /*
+    query {
+        employee(id: 2) {
+            firstName
+            lastName
+        }
+    }
+
+    // Produces
+
+    {
+        "firstName" : {},
+        "lastName" : {}
+    }
+    */
 
     // ...
 }
